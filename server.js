@@ -228,6 +228,56 @@ app.get('/track/:id.png', (req, res) => {
   res.send(pixelBuffer);
 });
 
+// Test page for participants (shows confirmation after tracking)
+app.get('/test/:id', (req, res) => {
+  const participantId = req.params.id;
+  
+  // Log the request (same as pixel tracking)
+  logRequest(participantId, req);
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Thank You - Participant ${participantId}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      padding: 50px; 
+      background-color: #f0f8ff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .success { color: #28a745; font-size: 24px; margin-bottom: 20px; }
+    .participant-id { color: #007bff; font-weight: bold; }
+    .timestamp { color: #666; font-size: 14px; margin-top: 20px; }
+    .hidden-pixel { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success">✅ Thank You!</div>
+    <h2>Your participation has been recorded</h2>
+    <p>Participant ID: <span class="participant-id">${participantId}</span></p>
+    <p>Your data has been successfully logged for the research study.</p>
+    <div class="timestamp">Recorded at: ${new Date().toLocaleString()}</div>
+    
+    <!-- Hidden tracking pixel for backup -->
+    <img src="/track/${participantId}.png" class="hidden-pixel" alt="" />
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
