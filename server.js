@@ -117,6 +117,98 @@ app.get('/', (req, res) => {
   res.send('Tracking server running.');
 });
 
+// Download CSV data (add basic auth for security)
+app.get('/download-data/:password', (req, res) => {
+  const password = req.params.password;
+  
+  // Simple password protection - change this to something secure
+  if (password !== 'lab-data-2025-secure') {
+    return res.status(401).send('Unauthorized');
+  }
+  
+  try {
+    if (!fs.existsSync(CSV_FILE)) {
+      return res.status(404).send('No data file found');
+    }
+    
+    const csvData = fs.readFileSync(CSV_FILE, 'utf8');
+    
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="tracking-data.csv"'
+    });
+    
+    res.send(csvData);
+  } catch (error) {
+    console.error('Error reading CSV file:', error);
+    res.status(500).send('Error reading data file');
+  }
+});
+
+// View CSV data in browser (for quick checks)
+app.get('/view-data/:password', (req, res) => {
+  const password = req.params.password;
+  
+  // Same password protection
+  if (password !== 'lab-data-2025-secure') {
+    return res.status(401).send('Unauthorized');
+  }
+  
+  try {
+    if (!fs.existsSync(CSV_FILE)) {
+      return res.status(404).send('No data file found');
+    }
+    
+    const csvData = fs.readFileSync(CSV_FILE, 'utf8');
+    const lines = csvData.trim().split('\n');
+    
+    let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tracking Data</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .timestamp { white-space: nowrap; }
+    .participant { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Tracking Data (${lines.length - 1} entries)</h1>
+  <p><a href="/download-data/lab-data-2025-secure">Download CSV</a></p>
+  <table>
+`;
+
+    lines.forEach((line, index) => {
+      if (line.trim()) {
+        const cols = line.split(',');
+        html += '<tr>';
+        cols.forEach((col, colIndex) => {
+          const cleanCol = col.replace(/^"|"$/g, ''); // Remove quotes
+          const cellClass = colIndex === 0 ? 'timestamp' : colIndex === 1 ? 'participant' : '';
+          const tag = index === 0 ? 'th' : 'td';
+          html += `<${tag} class="${cellClass}">${cleanCol}</${tag}>`;
+        });
+        html += '</tr>';
+      }
+    });
+
+    html += `
+  </table>
+  <p>Last updated: ${new Date().toISOString()}</p>
+</body>
+</html>`;
+
+    res.send(html);
+  } catch (error) {
+    console.error('Error reading CSV file:', error);
+    res.status(500).send('Error reading data file');
+  }
+});
+
 // Tracking pixel route
 app.get('/track/:id.png', (req, res) => {
   const participantId = req.params.id;
